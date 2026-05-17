@@ -621,7 +621,14 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 0 16px;
+}
+
+.topbar-left,
+.topbar-title {
+  display: flex;
+  align-items: center;
 }
 
 .topbar span {
@@ -629,7 +636,11 @@ h2 {
   font-size: 12px;
 }
 
+
 .topbar-canvas-state {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -653,6 +664,7 @@ h2 {
 
 .topbar-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
@@ -702,6 +714,27 @@ h2 {
   gap: 7px;
   overflow: auto;
   min-height: 0;
+}
+
+.asset-filter-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.asset-filter-row button {
+  padding: 6px 7px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: #171d25;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.asset-filter-row button.active {
+  color: #d9f2ea;
+  border-color: #1f8b78;
+  background: rgba(31, 139, 120, 0.22);
 }
 
 .skill-asset-card {
@@ -889,9 +922,15 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  position: relative;
   padding: 12px;
   border-bottom: 1px solid var(--line);
+}
+
+.canvas-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .node-search {
@@ -1249,14 +1288,27 @@ h2 {
   width: 220px;
   min-height: 90px;
   border: 1px solid #2f3c48;
-  border-radius: 8px;
+  border-radius: 16px;
   background: #151b24;
-  padding: 8px 10px 10px;
+  padding: 10px 16px 12px;
   display: grid;
   gap: 6px;
   box-shadow: none;
   position: relative;
   overflow: visible;
+}
+
+.flow-node.round-node {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 90px;
+  width: fit-content;
+
+  padding: 0 16px;
+
+  border-radius: 999px;
 }
 
 .agent-link-handles {
@@ -1403,18 +1455,10 @@ h2 {
   border-color: #73c8ff;
 }
 
-.flow-node-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
 .flow-node-title {
-  display: flex;
-  align-items: center;
+  display: grid;
+  justify-items: center;
   gap: 7px;
-  min-width: 0;
 }
 
 .flow-node-icon {
@@ -1437,13 +1481,15 @@ h2 {
 }
 
 .flow-node-title strong {
-  min-width: 0;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+
+  font-size: 13px;
   line-height: 1.2;
   font-weight: 700;
+  text-align: center;
 }
 
 .flow-node-kind {

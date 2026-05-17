@@ -75,7 +75,18 @@ export function createDefaultNodeRegistry(): NodeDefinition[] {
     policyPlaceholderNode("whatsapp.send", "WhatsApp Send", "WhatsApp outbound message", "whatsapp.send", "external-send"),
     policyPlaceholderNode("discord.send", "Discord", "Discord outbound message", "discord.send", "external-send"),
     policyPlaceholderNode("slack.send", "Slack", "Slack outbound message", "slack.send", "external-send"),
-    policyPlaceholderNode("email.send", "Email Send", "SMTP outbound message", "email.send", "external-send"),
+    policyPlaceholderNode("email.send", "Email Send", "SMTP outbound message", "email.send", "external-send", {
+      smtpHost: "",
+      smtpPort: 587,
+      encryption: "STARTTLS",
+      authMethod: "password",
+      username: "",
+      from: "",
+      to: "",
+      subject: "",
+      emailType: "text",
+      body: "{{message}}"
+    }),
     policyPlaceholderNode("gmail.action", "Gmail", "Gmail operation", "gmail.action", "external-send"),
     policyPlaceholderNode("google.sheets", "Google Sheets", "Google Sheets operation", "google.sheets", "write"),
     policyPlaceholderNode("google.drive", "Google Drive", "Google Drive operation", "google.drive", "write"),
@@ -851,14 +862,15 @@ function policyPlaceholderNode(
   label: string,
   description: string,
   tool: string,
-  risk: "read" | "write" | "destructive" | "external-send"
+  risk: "read" | "write" | "destructive" | "external-send",
+  defaultConfig: Record<string, unknown> = {}
 ): NodeDefinition {
   return {
     type,
     kind: "action",
     label,
     description,
-    defaultConfig: { tool, target: "*" },
+    defaultConfig: { tool, target: "*", ...defaultConfig },
     async run(ctx) {
       const policy = agentFromNodeConfig(ctx.node.config).policy;
       const actualTool = String(ctx.node.config.tool ?? tool);

@@ -1,0 +1,125 @@
+name: Build installers and release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, example: v0.1.0"
+        required: true
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  linux-deb:
+    name: Build Linux deb
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build deb
+        shell: bash
+        run: |
+          chmod +x scripts/build-deb.sh
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            release_tag="${{ github.event.inputs.tag }}"
+          else
+            release_tag="${GITHUB_REF_NAME}"
+          fi
+          VERSION="${release_tag#v}" ./scripts/build-deb.sh
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frostbyte-linux-deb
+          path: dist/deb/*.deb
+          if-no-files-found: error
+
+  windows-installer:
+    name: Build Windows installer
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup -y --no-progress
+
+      - name: Build Windows installer
+        shell: powershell
+        run: |
+          if ("${env:GITHUB_EVENT_NAME}" -eq "workflow_dispatch") {
+            $releaseTag = "${{ github.event.inputs.tag }}"
+          } else {
+            $releaseTag = "${env:GITHUB_REF_NAME}"
+          }
+          $version = $releaseTag -replace '^v',''
+          $env:VERSION = $version
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-windows-installer.ps1
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frostbyte-windows-installer
+          path: dist/windows/installer/*.exe
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs:
+      - linux-deb
+      - windows-installer
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/release
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Frost Control Plane ${{ steps.tag.outputs.tag }}
+          files: |
+            dist/release/**/*.deb
+            dist/release/**/*.exe
+          generate_release_notes: true

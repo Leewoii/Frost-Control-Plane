@@ -1104,11 +1104,31 @@ function createNodeConfig(type: string, id: string): Record<string, unknown> {
     case "telegram.send":
       return { tool: "telegram.send", credentialId: "", chatId: "", message: "{{message}}", parseMode: "none" };
     case "whatsapp.send":
-      return { tool: "whatsapp.send", credentialId: "", phoneNumberId: "", to: "", messageType: "text", message: "{{message}}", templateName: "", languageCode: "en_US" };
+      return { tool: "whatsapp.send", credentialId: "", phoneNumberId: "", wabaId: "", to: "", messageType: "text", message: "{{message}}", templateName: "", languageCode: "en_US" };
     case "discord.send":
     case "slack.send":
       return { tool: type, credentialId: "", operation: "send", channel: "", message: "{{message}}", threadId: "", attachmentField: "" };
     case "email.send":
+      return {
+        tool: "email.send",
+        credentialId: "",
+        smtpHost: "",
+        smtpPort: 587,
+        encryption: "STARTTLS",
+        authMethod: "password",
+        username: "",
+        password: "",
+        oauthToken: "",
+        from: "",
+        replyTo: "",
+        to: "",
+        cc: "",
+        bcc: "",
+        subject: "",
+        emailType: "text",
+        body: "{{message}}",
+        attachmentField: ""
+      };
     case "gmail.action":
       return { tool: type, credentialId: "", operation: "send", to: "", ccBcc: "", subject: "", emailType: "text", body: "{{message}}", attachmentField: "" };
     case "google.sheets":
@@ -1126,13 +1146,78 @@ function createNodeConfig(type: string, id: string): Record<string, unknown> {
     case "github.action":
       return { tool: type, credentialId: "", resource: defaultResourceForNode(type), operation: "create", project: "", target: "", title: "", body: "", fieldsText: "", fields: {} };
     case "s3.action":
+      return {
+        tool: "s3.action",
+        credentialId: "",
+        operation: "upload",
+        authMode: "accessKey",
+        region: "",
+        endpoint: "",
+        accessKeyId: "",
+        secretAccessKey: "",
+        sessionToken: "",
+        forcePathStyle: false,
+        container: "",
+        path: "",
+        fileName: "",
+        binaryField: "data",
+        content: ""
+      };
     case "ftp.action":
-      return { tool: type, credentialId: "", operation: "upload", container: "", path: "", fileName: "", binaryField: "data", content: "" };
+      return {
+        tool: "ftp.action",
+        credentialId: "",
+        operation: "upload",
+        protocol: "sftp",
+        host: "",
+        port: 22,
+        username: "",
+        password: "",
+        privateKey: "",
+        passphrase: "",
+        ignoreSslIssues: false,
+        path: "",
+        fileName: "",
+        binaryField: "data"
+      };
     case "redis.action":
-      return { tool: type, credentialId: "", operation: "get", key: "", value: "", ttlSeconds: 0 };
+      return { tool: type, credentialId: "", host: "", port: 6379, username: "", password: "", dbIndex: 0, tls: false, operation: "get", key: "", value: "", ttlSeconds: 0 };
     case "mongodb.action":
+      return {
+        tool: type,
+        credentialId: "",
+        configType: "connectionString",
+        connectionString: "",
+        host: "",
+        port: 27017,
+        username: "",
+        password: "",
+        authDb: "",
+        tls: true,
+        operation: "find",
+        database: "",
+        collection: "",
+        query: "{}",
+        document: "{}",
+        limit: 100
+      };
     case "elasticsearch.action":
-      return { tool: type, credentialId: "", operation: "find", database: "", collection: "", query: "{}", document: "{}", limit: 100 };
+      return {
+        tool: type,
+        credentialId: "",
+        authMode: "basic",
+        baseUrl: "",
+        username: "",
+        password: "",
+        apiKey: "",
+        ignoreSslIssues: false,
+        operation: "find",
+        database: "",
+        collection: "",
+        query: "{}",
+        document: "{}",
+        limit: 100
+      };
     case "git.action":
       return { tool: "git.status", operation: "status", repoPath: ".", target: ".", branch: "", remote: "origin", message: "", userName: "", userEmail: "" };
     case "file.action":

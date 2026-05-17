@@ -82,7 +82,7 @@ const dashboardTabs: Array<{ id: DashboardTab; label: string; adminOnly?: boolea
   { id: "canvases", label: "Canvases" },
   { id: "runs", label: "Runs" },
   { id: "agents", label: "Agents" },
-  { id: "skills", label: "Skills" },
+  { id: "skills", label: "AI Agent Assets" },
   { id: "credentials", label: "Credentials" },
   { id: "approvals", label: "Approvals" },
   { id: "settings", label: "Settings" },
@@ -214,6 +214,7 @@ function BaryonApp() {
   const [sending, setSending] = useState(false);
   const [nodeSearch, setNodeSearch] = useState("");
   const [showAllNodes, setShowAllNodes] = useState(false);
+  const [assetTypeFilter, setAssetTypeFilter] = useState<"all" | "soul" | "skill" | "personality">("all");
   const [dragPreview, setDragPreview] = useState<{ template: NodeTemplate; x: number; y: number } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string } | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
@@ -258,6 +259,10 @@ function BaryonApp() {
   const activeDashboardTab: DashboardTab = state?.user.role === "admin" || dashboardTab !== "admin" ? dashboardTab : "overview";
   const dashboardStats = useMemo(() => (state ? buildDashboardStats(state, runs, apiOnline, browserOnline) : null), [apiOnline, browserOnline, runs, state]);
   const dashboardSkills = useMemo(() => (state ? collectDashboardSkills(state) : []), [state]);
+  const filteredAgentAssets = useMemo(
+    () => dashboardSkills.filter((asset) => assetTypeFilter === "all" || asset.type === assetTypeFilter),
+    [assetTypeFilter, dashboardSkills]
+  );
   const dashboardCredentials = useMemo(() => (state ? collectDashboardCredentials(state) : []), [state]);
   const dashboardProviders = useMemo(() => (state ? collectDashboardProviders(state) : []), [state]);
 
@@ -421,7 +426,7 @@ function BaryonApp() {
     return () => {
       window.clearTimeout(timer);
     };
-  }, [fitView, workflow?.id, workflow?.nodes.length]);
+  }, [fitView, workflow?.id]);
 
   useEffect(() => {
     function closeContextMenu() {
@@ -1020,9 +1025,6 @@ function BaryonApp() {
     setSelectedNodeId(id);
     setSelectedNodeIds([id]);
     setStatus(`Added ${template.name}`);
-    window.setTimeout(() => {
-      fitView({ nodes: [{ id }], duration: 180, padding: 0.35 });
-    }, 80);
   }
 
   function addSkillAssetToCanvas(skill: DashboardSkillAsset) {
@@ -1051,9 +1053,6 @@ function BaryonApp() {
     setSelectedNodeId(id);
     setSelectedNodeIds([id]);
     setStatus(`Placed ${skill.name}`);
-    window.setTimeout(() => {
-      fitView({ nodes: [{ id }], duration: 180, padding: 0.35 });
-    }, 80);
   }
 
   function addNodeAtScreenPoint(template: NodeTemplate, x: number, y: number) {
@@ -1674,7 +1673,7 @@ function BaryonApp() {
               ) : null}
 
               {activeDashboardTab === "skills" ? (
-                <DashboardList title="Skills and Agent Assets" subtitle={`${dashboardSkills.length} assets`} icon={<PackageCheck size={18} />}>
+                <DashboardList title="AI Agent Assets" subtitle={`${dashboardSkills.length} assets`} icon={<PackageCheck size={18} />}>
                   {dashboardSkills.map((skill) => (
                     <div className="data-row" key={skill.id}>
                       <span>
@@ -1824,18 +1823,16 @@ function BaryonApp() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div>
-          <h1>{appName}</h1>
-        </div>
-        <div className={`topbar-canvas-state ${canvasOnline && apiOnline && browserOnline ? "online" : "offline"}`}>
-          {canvasOnline && apiOnline && browserOnline ? <Wifi size={14} /> : <WifiOff size={14} />}
-          <strong>Canvas {canvasOnline && apiOnline && browserOnline ? "Online" : "Offline"}</strong>
-        </div>
-        <div className="topbar-actions">
-          <small style={{ marginRight: 8, opacity: 0.8 }}>{state.user.username} ({state.user.role})</small>
+        <div className="topbar-left">
           <button onClick={() => setView("dashboard")} title="Dashboard">
             <LayoutDashboard size={16} />
           </button>
+        </div>
+        <div className="topbar-title">
+          <h1>{appName}</h1>
+        </div>
+        <div className="topbar-actions">
+          <small style={{ marginRight: 8, opacity: 0.8 }}>{state.user.username} ({state.user.role})</small>
           <button onClick={refresh} title="Refresh">
             <RefreshCw size={16} />
           </button>
@@ -1881,26 +1878,6 @@ function BaryonApp() {
             />
             Redact
           </label>
-          <button
-            onClick={logout}
-            title="Logout"
-          >
-            Logout
-          </button>
-          <button
-            className={canvasOnline ? "danger" : "primary"}
-            onClick={() => {
-              setCanvasOnline((current) => {
-                const next = !current;
-                setStatus(next ? "Canvas online" : "Canvas offline");
-                return next;
-              });
-            }}
-            title="Toggle canvas online state"
-          >
-            <Play size={16} />
-            {canvasOnline ? "Set Offline" : "Set Online"}
-          </button>
         </div>
       </header>
 
@@ -2011,6 +1988,26 @@ function BaryonApp() {
               <SlidersHorizontal size={18} />
               <strong>Canvas</strong>
             </div>
+            <div className="canvas-toolbar-actions">
+              <div className={`topbar-canvas-state ${canvasOnline && apiOnline && browserOnline ? "online" : "offline"}`}>
+                {canvasOnline && apiOnline && browserOnline ? <Wifi size={14} /> : <WifiOff size={14} />}
+                <strong>Canvas {canvasOnline && apiOnline && browserOnline ? "Online" : "Offline"}</strong>
+              </div>
+              <button
+                className={canvasOnline ? "danger" : "primary"}
+                onClick={() => {
+                  setCanvasOnline((current) => {
+                    const next = !current;
+                    setStatus(next ? "Canvas online" : "Canvas offline");
+                    return next;
+                  });
+                }}
+                title="Toggle canvas online state"
+              >
+                <Play size={16} />
+                {canvasOnline ? "Set Offline" : "Set Online"}
+              </button>
+            </div>
           </div>
 
           <div className="canvas" ref={canvasRef} onDrop={onCanvasDrop} onDragOver={onCanvasDragOver}>
@@ -2073,10 +2070,9 @@ function BaryonApp() {
               nodesConnectable
               elementsSelectable
               selectionOnDrag
-              panOnDrag={false}
+              panOnDrag={[1]}
               panOnScroll
               nodeDragThreshold={1}
-              fitView
               proOptions={{ hideAttribution: true }}
             >
               <Background />
@@ -2138,13 +2134,19 @@ function BaryonApp() {
           <section className="skill-assets-panel">
             <div className="panel-head">
               <PackageCheck size={18} />
-              <strong>Skill Assets</strong>
+              <strong>AI Agent Assets</strong>
+            </div>
+            <div className="asset-filter-row">
+              <button className={assetTypeFilter === "all" ? "active" : ""} onClick={() => setAssetTypeFilter("all")}>All</button>
+              <button className={assetTypeFilter === "soul" ? "active" : ""} onClick={() => setAssetTypeFilter("soul")}>Soul</button>
+              <button className={assetTypeFilter === "skill" ? "active" : ""} onClick={() => setAssetTypeFilter("skill")}>Skills</button>
+              <button className={assetTypeFilter === "personality" ? "active" : ""} onClick={() => setAssetTypeFilter("personality")}>Personality</button>
             </div>
             <div className="skill-assets-list">
-              {dashboardSkills.length === 0 ? (
-                <div className="skill-empty">No saved skills yet.</div>
+              {filteredAgentAssets.length === 0 ? (
+                <div className="skill-empty">No saved AI agent assets.</div>
               ) : (
-                dashboardSkills.map((skill) => (
+                filteredAgentAssets.map((skill) => (
                   <button className="skill-asset-card" key={skill.id} onClick={() => addSkillAssetToCanvas(skill)} title={`Place ${skill.name}`}>
                     <span>
                       <strong>{skill.name}</strong>
@@ -2285,8 +2287,9 @@ function DashboardList({ title, subtitle, icon, children }: { title: string; sub
 function BaryonNode({ data }: NodeProps<Node<{ workflowNode: WorkflowNode; selected: boolean }>>) {
   const node = data.workflowNode;
   const Icon = iconForWorkflowNode(node);
+  const hasOnlyEntryExitConnectors = node.kind !== "agent";
   return (
-    <div className={`flow-node ${node.kind} ${data.selected ? "selected" : ""}`}>
+    <div className={`flow-node ${node.kind} ${hasOnlyEntryExitConnectors ? "round-node" : ""} ${data.selected ? "selected" : ""}`}>
       {node.kind === "agent" ? (
         <div className="agent-link-handles">
           <Handle id="soul" type="target" position={Position.Bottom} className="agent-link-handle soul-link" style={{ left: "18%" }} />
@@ -2295,22 +2298,12 @@ function BaryonNode({ data }: NodeProps<Node<{ workflowNode: WorkflowNode; selec
         </div>
       ) : null}
       <Handle id="workflow-input" type="target" position={Position.Left} className="workflow-input-handle" />
-      <div className="flow-node-title-row">
-        <div className="flow-node-title">
-          <span className="flow-node-icon" aria-hidden="true">
-            <Icon size={14} />
-          </span>
-          <strong>{node.name}</strong>
-        </div>
-        <span className="flow-node-kind">{node.kind}</span>
+      <div className="flow-node-title">
+        <span className="flow-node-icon" aria-hidden="true">
+          <Icon size={14} />
+        </span>
+        <strong>{node.name}</strong>
       </div>
-      <small className="flow-node-subtitle">{node.type}</small>
-      {node.kind === "agent" ? (
-        <em className="flow-node-subtitle">
-          {String((node.config.model as Record<string, unknown> | undefined)?.provider ?? "ollama")} /
-          {String((node.config.model as Record<string, unknown> | undefined)?.model ?? "model")}
-        </em>
-      ) : null}
       {node.kind === "agent" ? (
         <div className="agent-profile-inline">
           <span>Soul</span>
@@ -2618,12 +2611,15 @@ function NodeInspector({
 }) {
   const model = (node.config.model as { provider?: ModelProviderId; model?: string } | undefined) ?? { provider: "ollama", model: "llama3.1" };
   const provider = model.provider ?? "ollama";
+  const modelName = model.model ?? firstModel(provider);
+  const canControlIntelligence = supportsIntelligenceControl(provider, modelName);
   const runOutput = run?.nodeOutputs?.[node.id] ?? [];
 
-    if (node.kind !== "agent") {
+  if (node.kind !== "agent") {
     return (
       <div className="inspector-form">
         <NodeBaseFields node={node} selectedCount={selectedCount} updateNode={updateNode} onDelete={onDelete} />
+        <CredentialRequirements nodeType={node.type} />
         <NodeConfigFields node={node} updateNodeConfig={updateNodeConfig} />
         <NodeRunInspector nodeId={node.id} run={run} items={runOutput} />
         {isSkillAssetNode(node) ? (
@@ -2664,7 +2660,7 @@ function NodeInspector({
       </label>
       <label>
         Model
-        <select value={model.model ?? firstModel(provider)} onChange={(event) => updateNodeConfig({ model: { ...model, model: event.target.value } })}>
+        <select value={modelName} onChange={(event) => updateNodeConfig({ model: { ...model, model: event.target.value } })}>
           {providerModels[provider].map((item) => (
             <option value={item} key={item}>
               {item}
@@ -2672,23 +2668,17 @@ function NodeInspector({
           ))}
         </select>
       </label>
-      <label>
-        Intelligence
-        <select value={String(node.config.intelligence ?? "off")} onChange={(event) => updateNodeConfig({ intelligence: event.target.value })}>
-          <option value="off">off</option>
-          <option value="low">low</option>
-          <option value="medium">medium</option>
-          <option value="high">high</option>
-        </select>
-      </label>
-      <label>
-        Soul
-        <textarea value={String(node.config.soul ?? "")} onChange={(event) => updateNodeConfig({ soul: event.target.value })} />
-      </label>
-      <label>
-        Personality
-        <textarea value={String(node.config.personality ?? "")} onChange={(event) => updateNodeConfig({ personality: event.target.value })} />
-      </label>
+      {canControlIntelligence ? (
+        <label>
+          Intelligence
+          <select value={String(node.config.intelligence ?? "off")} onChange={(event) => updateNodeConfig({ intelligence: event.target.value })}>
+            <option value="off">off</option>
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+      ) : null}
       <label>
         Tools
         <input
@@ -3097,6 +3087,7 @@ function NodeConfigFields({
         <div className="inspector-card">
           <TextInput label="Credential ID" value={node.config.credentialId ?? ""} onChange={(credentialId) => updateNodeConfig({ credentialId })} />
           <TextInput label="Phone number ID" value={node.config.phoneNumberId ?? ""} onChange={(phoneNumberId) => updateNodeConfig({ phoneNumberId })} />
+          <TextInput label="WABA ID" value={node.config.wabaId ?? ""} onChange={(wabaId) => updateNodeConfig({ wabaId })} />
           <TextInput label="Recipient phone" value={node.config.to ?? ""} onChange={(to) => updateNodeConfig({ to })} />
           <SelectInput label="Message type" value={node.config.messageType ?? "text"} options={["text", "template"]} onChange={(messageType) => updateNodeConfig({ messageType })} />
           <TextAreaInput label="Message" value={node.config.message ?? "{{message}}"} onChange={(message) => updateNodeConfig({ message })} />
@@ -3117,6 +3108,27 @@ function NodeConfigFields({
         </div>
       );
     case "email.send":
+      return (
+        <div className="inspector-card">
+          <TextInput label="Credential ID" value={node.config.credentialId ?? ""} onChange={(credentialId) => updateNodeConfig({ credentialId })} />
+          <TextInput label="SMTP server" value={node.config.smtpHost ?? ""} onChange={(smtpHost) => updateNodeConfig({ smtpHost, target: smtpHost })} />
+          <NumberInput label="Port" value={node.config.smtpPort ?? 587} onChange={(smtpPort) => updateNodeConfig({ smtpPort })} />
+          <SelectInput label="Encryption" value={node.config.encryption ?? "STARTTLS"} options={["STARTTLS", "SSL/TLS", "none"]} onChange={(encryption) => updateNodeConfig({ encryption })} />
+          <SelectInput label="Auth method" value={node.config.authMethod ?? "password"} options={["password", "oauth", "none"]} onChange={(authMethod) => updateNodeConfig({ authMethod })} />
+          <TextInput label="Username" value={node.config.username ?? ""} onChange={(username) => updateNodeConfig({ username })} />
+          <SecretInput label="Password / app password" value={node.config.password ?? ""} onChange={(password) => updateNodeConfig({ password })} />
+          <SecretInput label="OAuth token" value={node.config.oauthToken ?? ""} onChange={(oauthToken) => updateNodeConfig({ oauthToken })} />
+          <TextInput label="From" value={node.config.from ?? ""} onChange={(from) => updateNodeConfig({ from })} />
+          <TextInput label="Reply-To" value={node.config.replyTo ?? ""} onChange={(replyTo) => updateNodeConfig({ replyTo })} />
+          <TextInput label="To" value={node.config.to ?? ""} onChange={(to) => updateNodeConfig({ to })} />
+          <TextInput label="CC" value={node.config.cc ?? ""} onChange={(cc) => updateNodeConfig({ cc })} />
+          <TextInput label="BCC" value={node.config.bcc ?? ""} onChange={(bcc) => updateNodeConfig({ bcc })} />
+          <TextInput label="Subject" value={node.config.subject ?? ""} onChange={(subject) => updateNodeConfig({ subject })} />
+          <SelectInput label="Email type" value={node.config.emailType ?? "text"} options={["text", "html"]} onChange={(emailType) => updateNodeConfig({ emailType })} />
+          <TextAreaInput label="Body" value={node.config.body ?? "{{message}}"} onChange={(body) => updateNodeConfig({ body, payload: body })} />
+          <TextInput label="Attachment field" value={node.config.attachmentField ?? ""} onChange={(attachmentField) => updateNodeConfig({ attachmentField })} />
+        </div>
+      );
     case "gmail.action":
       return (
         <div className="inspector-card">
@@ -3143,8 +3155,6 @@ function NodeConfigFields({
         </div>
       );
     case "google.drive":
-    case "s3.action":
-    case "ftp.action":
       return (
         <div className="inspector-card">
           <TextInput label="Credential ID" value={node.config.credentialId ?? ""} onChange={(credentialId) => updateNodeConfig({ credentialId })} />
@@ -3154,6 +3164,43 @@ function NodeConfigFields({
           <TextInput label="File name" value={node.config.fileName ?? ""} onChange={(fileName) => updateNodeConfig({ fileName })} />
           <TextInput label="Binary field" value={node.config.binaryField ?? "data"} onChange={(binaryField) => updateNodeConfig({ binaryField })} />
           <TextAreaInput label="Text content / query" value={node.config.content ?? ""} onChange={(content) => updateNodeConfig({ content, payload: content })} />
+        </div>
+      );
+    case "s3.action":
+      return (
+        <div className="inspector-card">
+          <TextInput label="Credential ID" value={node.config.credentialId ?? ""} onChange={(credentialId) => updateNodeConfig({ credentialId })} />
+          <SelectInput label="Operation" value={node.config.operation ?? "upload"} options={["upload", "download", "list", "delete", "move", "copy", "search"]} onChange={(operation) => updateNodeConfig({ operation })} />
+          <SelectInput label="Auth mode" value={node.config.authMode ?? "accessKey"} options={["accessKey", "iamRole"]} onChange={(authMode) => updateNodeConfig({ authMode })} />
+          <TextInput label="Region" value={node.config.region ?? ""} onChange={(region) => updateNodeConfig({ region })} />
+          <TextInput label="S3 endpoint" value={node.config.endpoint ?? ""} onChange={(endpoint) => updateNodeConfig({ endpoint })} />
+          <TextInput label="Access key ID" value={node.config.accessKeyId ?? ""} onChange={(accessKeyId) => updateNodeConfig({ accessKeyId })} />
+          <SecretInput label="Secret access key" value={node.config.secretAccessKey ?? ""} onChange={(secretAccessKey) => updateNodeConfig({ secretAccessKey })} />
+          <SecretInput label="Session token" value={node.config.sessionToken ?? ""} onChange={(sessionToken) => updateNodeConfig({ sessionToken })} />
+          <SelectInput label="Force path style" value={node.config.forcePathStyle ? "true" : "false"} options={["false", "true"]} onChange={(value) => updateNodeConfig({ forcePathStyle: value === "true" })} />
+          <TextInput label="Bucket" value={node.config.container ?? ""} onChange={(container) => updateNodeConfig({ container })} />
+          <TextInput label="Object key / path" value={node.config.path ?? ""} onChange={(path) => updateNodeConfig({ path, target: path })} />
+          <TextInput label="File name" value={node.config.fileName ?? ""} onChange={(fileName) => updateNodeConfig({ fileName })} />
+          <TextInput label="Binary field" value={node.config.binaryField ?? "data"} onChange={(binaryField) => updateNodeConfig({ binaryField })} />
+          <TextAreaInput label="Text content / query" value={node.config.content ?? ""} onChange={(content) => updateNodeConfig({ content, payload: content })} />
+        </div>
+      );
+    case "ftp.action":
+      return (
+        <div className="inspector-card">
+          <TextInput label="Credential ID" value={node.config.credentialId ?? ""} onChange={(credentialId) => updateNodeConfig({ credentialId })} />
+          <SelectInput label="Operation" value={node.config.operation ?? "upload"} options={["upload", "download", "list", "delete", "move", "copy", "search"]} onChange={(operation) => updateNodeConfig({ operation })} />
+          <SelectInput label="Protocol" value={node.config.protocol ?? "sftp"} options={["sftp", "ftp", "ftps"]} onChange={(protocol) => updateNodeConfig({ protocol })} />
+          <TextInput label="Host" value={node.config.host ?? ""} onChange={(host) => updateNodeConfig({ host })} />
+          <NumberInput label="Port" value={node.config.port ?? 22} onChange={(port) => updateNodeConfig({ port })} />
+          <TextInput label="Username" value={node.config.username ?? ""} onChange={(username) => updateNodeConfig({ username })} />
+          <SecretInput label="Password" value={node.config.password ?? ""} onChange={(password) => updateNodeConfig({ password })} />
+          <TextAreaInput label="Private key" value={node.config.privateKey ?? ""} onChange={(privateKey) => updateNodeConfig({ privateKey })} />
+          <SecretInput label="Passphrase" value={node.config.passphrase ?? ""} onChange={(passphrase) => updateNodeConfig({ passphrase })} />
+          <SelectInput label="Ignore SSL issues" value={node.config.ignoreSslIssues ? "true" : "false"} options={["false", "true"]} onChange={(value) => updateNodeConfig({ ignoreSslIssues: value === "true" })} />
+          <TextInput label="Remote path" value={node.config.path ?? ""} onChange={(path) => updateNodeConfig({ path, target: path })} />
+          <TextInput label="File name" value={node.config.fileName ?? ""} onChange={(fileName) => updateNodeConfig({ fileName })} />
+          <TextInput label="Binary field" value={node.config.binaryField ?? "data"} onChange={(binaryField) => updateNodeConfig({ binaryField })} />
         </div>
       );
     case "notion.action":
@@ -3200,6 +3247,12 @@ function NodeConfigFields({
       return (
         <div className="inspector-card">
           <TextInput label="Credential ID" value={node.config.credentialId ?? ""} onChange={(credentialId) => updateNodeConfig({ credentialId })} />
+          <TextInput label="Host" value={node.config.host ?? ""} onChange={(host) => updateNodeConfig({ host })} />
+          <NumberInput label="Port" value={node.config.port ?? 6379} onChange={(port) => updateNodeConfig({ port })} />
+          <TextInput label="Username" value={node.config.username ?? ""} onChange={(username) => updateNodeConfig({ username })} />
+          <SecretInput label="Password" value={node.config.password ?? ""} onChange={(password) => updateNodeConfig({ password })} />
+          <NumberInput label="DB index" value={node.config.dbIndex ?? 0} onChange={(dbIndex) => updateNodeConfig({ dbIndex })} />
+          <SelectInput label="Use TLS" value={node.config.tls ? "true" : "false"} options={["false", "true"]} onChange={(value) => updateNodeConfig({ tls: value === "true" })} />
           <SelectInput label="Operation" value={node.config.operation ?? "get"} options={["get", "set", "delete", "increment", "publish", "streamAdd"]} onChange={(operation) => updateNodeConfig({ operation })} />
           <TextInput label="Key / channel" value={node.config.key ?? ""} onChange={(key) => updateNodeConfig({ key, target: key })} />
           <TextAreaInput label="Value / message" value={node.config.value ?? ""} onChange={(value) => updateNodeConfig({ value, payload: value })} />
@@ -3207,13 +3260,38 @@ function NodeConfigFields({
         </div>
       );
     case "mongodb.action":
+      return (
+        <div className="inspector-card">
+          <TextInput label="Credential ID" value={node.config.credentialId ?? ""} onChange={(credentialId) => updateNodeConfig({ credentialId })} />
+          <SelectInput label="Config type" value={node.config.configType ?? "connectionString"} options={["connectionString", "values"]} onChange={(configType) => updateNodeConfig({ configType })} />
+          <TextInput label="Connection string" value={node.config.connectionString ?? ""} onChange={(connectionString) => updateNodeConfig({ connectionString })} />
+          <TextInput label="Host" value={node.config.host ?? ""} onChange={(host) => updateNodeConfig({ host })} />
+          <NumberInput label="Port" value={node.config.port ?? 27017} onChange={(port) => updateNodeConfig({ port })} />
+          <TextInput label="Username" value={node.config.username ?? ""} onChange={(username) => updateNodeConfig({ username })} />
+          <SecretInput label="Password" value={node.config.password ?? ""} onChange={(password) => updateNodeConfig({ password })} />
+          <TextInput label="Auth DB" value={node.config.authDb ?? ""} onChange={(authDb) => updateNodeConfig({ authDb })} />
+          <SelectInput label="Use TLS" value={node.config.tls ? "true" : "false"} options={["false", "true"]} onChange={(value) => updateNodeConfig({ tls: value === "true" })} />
+          <SelectInput label="Operation" value={node.config.operation ?? "find"} options={["find", "insert", "update", "delete", "aggregate", "index", "search"]} onChange={(operation) => updateNodeConfig({ operation })} />
+          <TextInput label="Database / index" value={node.config.database ?? ""} onChange={(database) => updateNodeConfig({ database })} />
+          <TextInput label="Collection" value={node.config.collection ?? ""} onChange={(collection) => updateNodeConfig({ collection, target: collection })} />
+          <TextAreaInput label="Query JSON" value={node.config.query ?? "{}"} onChange={(query) => updateNodeConfig({ query })} />
+          <TextAreaInput label="Document JSON" value={node.config.document ?? "{}"} onChange={(document) => updateNodeConfig({ document, payload: document })} />
+          <NumberInput label="Limit" value={node.config.limit ?? 100} onChange={(limit) => updateNodeConfig({ limit })} />
+        </div>
+      );
     case "elasticsearch.action":
       return (
         <div className="inspector-card">
           <TextInput label="Credential ID" value={node.config.credentialId ?? ""} onChange={(credentialId) => updateNodeConfig({ credentialId })} />
+          <SelectInput label="Auth mode" value={node.config.authMode ?? "basic"} options={["basic", "apiKey"]} onChange={(authMode) => updateNodeConfig({ authMode })} />
+          <TextInput label="Base URL" value={node.config.baseUrl ?? ""} onChange={(baseUrl) => updateNodeConfig({ baseUrl })} />
+          <TextInput label="Username" value={node.config.username ?? ""} onChange={(username) => updateNodeConfig({ username })} />
+          <SecretInput label="Password" value={node.config.password ?? ""} onChange={(password) => updateNodeConfig({ password })} />
+          <SecretInput label="API key" value={node.config.apiKey ?? ""} onChange={(apiKey) => updateNodeConfig({ apiKey })} />
+          <SelectInput label="Ignore SSL issues" value={node.config.ignoreSslIssues ? "true" : "false"} options={["false", "true"]} onChange={(value) => updateNodeConfig({ ignoreSslIssues: value === "true" })} />
           <SelectInput label="Operation" value={node.config.operation ?? "find"} options={["find", "insert", "update", "delete", "aggregate", "index", "search"]} onChange={(operation) => updateNodeConfig({ operation })} />
-          <TextInput label="Database / index" value={node.config.database ?? ""} onChange={(database) => updateNodeConfig({ database })} />
-          <TextInput label="Collection" value={node.config.collection ?? ""} onChange={(collection) => updateNodeConfig({ collection, target: collection })} />
+          <TextInput label="Index" value={node.config.database ?? ""} onChange={(database) => updateNodeConfig({ database })} />
+          <TextInput label="Document type / collection" value={node.config.collection ?? ""} onChange={(collection) => updateNodeConfig({ collection, target: collection })} />
           <TextAreaInput label="Query JSON" value={node.config.query ?? "{}"} onChange={(query) => updateNodeConfig({ query })} />
           <TextAreaInput label="Document JSON" value={node.config.document ?? "{}"} onChange={(document) => updateNodeConfig({ document, payload: document })} />
           <NumberInput label="Limit" value={node.config.limit ?? 100} onChange={(limit) => updateNodeConfig({ limit })} />
@@ -3390,6 +3468,71 @@ function SelectInput({
   );
 }
 
+function CredentialRequirements({ nodeType }: { nodeType: string }) {
+  const req = credentialRequirementRows(nodeType);
+  if (req.length === 0) return null;
+  return (
+    <div className="inspector-card">
+      <strong>Credential requirements</strong>
+      <ul>
+        {req.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function credentialRequirementRows(nodeType: string): string[] {
+  switch (nodeType) {
+    case "telegram.send":
+      return ["Telegram bot token (BotFather)", "Target chat ID"];
+    case "whatsapp.send":
+      return ["Meta WhatsApp permanent token", "Phone Number ID", "WABA ID"];
+    case "discord.send":
+      return ["Bot token or incoming webhook URL", "Target channel / thread"];
+    case "slack.send":
+      return ["Slack bot token or webhook URL", "Channel ID/name", "Signing secret for inbound Slack trigger"];
+    case "email.send":
+      return ["SMTP host", "Port (587 STARTTLS or 465 SSL/TLS)", "Auth: username+password or OAuth token", "From address"];
+    case "gmail.action":
+      return ["Google OAuth credential (gmail scope)", "Mailbox access grant"];
+    case "google.sheets":
+    case "google.drive":
+      return ["Google OAuth credential", "Scope access for selected operation"];
+    case "notion.action":
+      return ["Notion integration token", "Connected workspace/page access"];
+    case "airtable.action":
+      return ["Airtable personal access token", "Base ID + table permissions"];
+    case "hubspot.action":
+      return ["HubSpot private app token", "Object scope permissions"];
+    case "trello.action":
+      return ["Trello API key", "Trello token"];
+    case "linear.action":
+      return ["Linear API key"];
+    case "jira.action":
+      return ["Atlassian account email", "Jira API token", "Jira domain URL"];
+    case "github.action":
+      return ["GitHub token (PAT or app token)", "Repo/org scopes for operation"];
+    case "s3.action":
+      return ["S3 region", "Access key + secret key (or IAM role)", "S3 endpoint for S3-compatible providers"];
+    case "ftp.action":
+      return ["Protocol (FTP/SFTP/FTPS)", "Host + port", "Username/password or SSH private key"];
+    case "redis.action":
+      return ["Redis host + port", "Optional username/password", "TLS setting if required"];
+    case "mongodb.action":
+      return ["Mongo connection string or host/port/user/pass", "Auth database and TLS if required"];
+    case "elasticsearch.action":
+      return ["Elasticsearch base URL", "Basic auth (username/password) or API key"];
+    case "database.query":
+      return ["DB host/port/database", "DB username/password or credential record"];
+    case "ssh.action":
+      return ["SSH host/IP + port", "Username", "Password or private key + passphrase"];
+    default:
+      return [];
+  }
+}
+
 function keyValueTextToObject(text: string): Record<string, string> {
   return Object.fromEntries(
     text
@@ -3407,6 +3550,17 @@ function firstModel(provider: ModelProviderId): string {
   return providerModels[provider][0] ?? "llama3.1";
 }
 
+function supportsIntelligenceControl(provider: ModelProviderId, model: string): boolean {
+  if (provider === "anthropic") {
+    return true;
+  }
+  if (provider === "openai") {
+    const lower = model.toLowerCase();
+    return lower.startsWith("o");
+  }
+  return false;
+}
+
 function createNodeConfig(template: NodeTemplate, id: string): Record<string, unknown> {
   switch (template.type) {
     case "group.box":
@@ -3417,8 +3571,6 @@ function createNodeConfig(template: NodeTemplate, id: string): Record<string, un
         name: "Canvas Agent",
         model: { provider: "ollama", model: "llama3.1" },
         intelligence: "off",
-        soul: "You are a focused automation agent.",
-        personality: "Direct, careful, and concise.",
         tools: ["repo.inspect", "file.read"]
       };
     case "agent.soul":
@@ -3528,11 +3680,31 @@ function createNodeConfig(template: NodeTemplate, id: string): Record<string, un
     case "telegram.send":
       return { tool: "telegram.send", credentialId: "", chatId: "", message: "{{message}}", parseMode: "none" };
     case "whatsapp.send":
-      return { tool: "whatsapp.send", credentialId: "", phoneNumberId: "", to: "", messageType: "text", message: "{{message}}", templateName: "", languageCode: "en_US" };
+      return { tool: "whatsapp.send", credentialId: "", phoneNumberId: "", wabaId: "", to: "", messageType: "text", message: "{{message}}", templateName: "", languageCode: "en_US" };
     case "discord.send":
     case "slack.send":
       return { tool: template.type, credentialId: "", operation: "send", channel: "", message: "{{message}}", threadId: "", attachmentField: "" };
     case "email.send":
+      return {
+        tool: "email.send",
+        credentialId: "",
+        smtpHost: "",
+        smtpPort: 587,
+        encryption: "STARTTLS",
+        authMethod: "password",
+        username: "",
+        password: "",
+        oauthToken: "",
+        from: "",
+        replyTo: "",
+        to: "",
+        cc: "",
+        bcc: "",
+        subject: "",
+        emailType: "text",
+        body: "{{message}}",
+        attachmentField: ""
+      };
     case "gmail.action":
       return { tool: template.type, credentialId: "", operation: "send", to: "", ccBcc: "", subject: "", emailType: "text", body: "{{message}}", attachmentField: "" };
     case "google.sheets":
@@ -3550,13 +3722,78 @@ function createNodeConfig(template: NodeTemplate, id: string): Record<string, un
     case "github.action":
       return { tool: template.type, credentialId: "", resource: defaultResourceForNode(template.type), operation: "create", project: "", target: "", title: "", body: "", fieldsText: "", fields: {} };
     case "s3.action":
+      return {
+        tool: "s3.action",
+        credentialId: "",
+        operation: "upload",
+        authMode: "accessKey",
+        region: "",
+        endpoint: "",
+        accessKeyId: "",
+        secretAccessKey: "",
+        sessionToken: "",
+        forcePathStyle: false,
+        container: "",
+        path: "",
+        fileName: "",
+        binaryField: "data",
+        content: ""
+      };
     case "ftp.action":
-      return { tool: template.type, credentialId: "", operation: "upload", container: "", path: "", fileName: "", binaryField: "data", content: "" };
+      return {
+        tool: "ftp.action",
+        credentialId: "",
+        operation: "upload",
+        protocol: "sftp",
+        host: "",
+        port: 22,
+        username: "",
+        password: "",
+        privateKey: "",
+        passphrase: "",
+        ignoreSslIssues: false,
+        path: "",
+        fileName: "",
+        binaryField: "data"
+      };
     case "redis.action":
-      return { tool: template.type, credentialId: "", operation: "get", key: "", value: "", ttlSeconds: 0 };
+      return { tool: template.type, credentialId: "", host: "", port: 6379, username: "", password: "", dbIndex: 0, tls: false, operation: "get", key: "", value: "", ttlSeconds: 0 };
     case "mongodb.action":
+      return {
+        tool: template.type,
+        credentialId: "",
+        configType: "connectionString",
+        connectionString: "",
+        host: "",
+        port: 27017,
+        username: "",
+        password: "",
+        authDb: "",
+        tls: true,
+        operation: "find",
+        database: "",
+        collection: "",
+        query: "{}",
+        document: "{}",
+        limit: 100
+      };
     case "elasticsearch.action":
-      return { tool: template.type, credentialId: "", operation: "find", database: "", collection: "", query: "{}", document: "{}", limit: 100 };
+      return {
+        tool: template.type,
+        credentialId: "",
+        authMode: "basic",
+        baseUrl: "",
+        username: "",
+        password: "",
+        apiKey: "",
+        ignoreSslIssues: false,
+        operation: "find",
+        database: "",
+        collection: "",
+        query: "{}",
+        document: "{}",
+        limit: 100
+      };
     case "git.action":
       return { tool: "git.status", operation: "status", repoPath: ".", target: ".", branch: "", remote: "origin", message: "", userName: "", userEmail: "", repoOwnerId: "", repoSharedWithUsernames: [] };
     case "file.action":

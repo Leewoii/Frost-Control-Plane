@@ -12,6 +12,7 @@ Research target: copy useful interaction patterns, not n8n internals.
 - Credentials are first-class node config, but secrets stay outside node JSON.
 - Workflow data passes as item arrays containing JSON and optional binary data.
 - Canvas supports drag/drop, keyboard movement, node execution, stale-run markers, and sticky notes.
+- SMTP email nodes need server host, port, encryption mode, auth method, username/password or OAuth token, from/reply-to, recipients, subject, body type, body, and optional attachment field.
 
 ## Baryon v1 Mapping
 

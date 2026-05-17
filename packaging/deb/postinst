@@ -13,7 +13,9 @@ mkdir -p /var/lib/frostbyte-control-plane /etc/frostbyte-control-plane
 chown -R frostbyte:frostbyte /var/lib/frostbyte-control-plane
 
 cd /opt/frostbyte-control-plane
-npm ci --omit=dev --workspaces --ignore-scripts
+if [ ! -d node_modules ]; then
+  npm ci --omit=dev --workspaces --ignore-scripts
+fi
 chown -R frostbyte:frostbyte /opt/frostbyte-control-plane
 
 if command -v systemctl >/dev/null 2>&1; then
