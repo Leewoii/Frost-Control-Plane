@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@baryon/core": ["../../packages/core/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}
