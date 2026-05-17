@@ -1,4 +1,4 @@
-# Baryon Agent
+# Frost Control Plane
 
 Local-first AI orchestration app: chat session + n8n-like canvas, built for Ollama-first IT and coding agents.
 
